@@ -21,6 +21,7 @@ type match struct {
 }
 
 var iF []byte
+
 //NOT THE ACTUAL KEY; AN EXTRA ELEMENT IS ADDED BY THE WORKERS
 var baseKey []byte
 var wg sync.WaitGroup
@@ -36,6 +37,7 @@ func main() {
 	//operation flags
 	var dxor = flag.Bool("x", false, "xor input file with key and write to output")
 	var search = flag.String("s", "", "search for string in input")
+	var ddxor = flag.String("D", "", "folder to dump ALL xored variants")
 
 	//additional flags for operations
 	var keyB = flag.String("k", "", "key as a series of csv base 10 bytes")
@@ -60,9 +62,9 @@ func main() {
 		}
 	}
 
-	//xor input file with baseKey
+	//xor input file with key
 	if *dxor {
-		//generate actual baseKey from either string or csv baseKey
+		//generate actual key from either string or csv key
 		if *keyB != "" {
 			baseKey = parseKey(*keyB)
 		} else if *keyS != "" {
@@ -80,7 +82,7 @@ func main() {
 		}
 		return
 	}
-	//search for xored string in file
+	//search for xor'ed string in file
 	if *search != "" {
 		if *maxCpu {
 			*nCpu = uint(runtime.NumCPU())
@@ -108,7 +110,7 @@ func main() {
 			//print matches, if any
 			if len(res.ms) > 0 {
 				for _, r := range res.ms {
-					if len(r.pos) >= int(*minMatch){
+					if len(r.pos) >= int(*minMatch) {
 						fmt.Println("found keyword at", r.pos, "with key", r.key)
 					}
 				}
@@ -118,13 +120,43 @@ func main() {
 			baseKey = ipp(baseKey)
 
 			//trying to use a baseKey longer than the search string is useless with xor
-			if len(baseKey) > len(IKey) - 1 {
+			if len(baseKey) > len(IKey)-1 {
 				fmt.Println("key space exhausted for this keyword")
 				return
 			}
 		}
 		fmt.Println("max length of key reached")
+		return
 	}
+	//xor input file with a pile of keys and write them all to a folder
+	if *ddxor != "" {
+		err = os.MkdirAll(*ddxor, 0755)
+		if err != nil {
+			fmt.Println("error creating directory/ies:", err)
+			os.Exit(1)
+		}
+		baseKey = []byte{0}
+		for len(baseKey) < int(*maxLen)+1 {
+			fmt.Println("writing", baseKey)
+			err = ioutil.WriteFile(*ddxor+string(os.PathSeparator)+a2s(baseKey), xor(iF, baseKey), 0644)
+			if err != nil {
+				fmt.Println("error writing file:", err)
+				os.Exit(1)
+			}
+			baseKey = ipp(baseKey)
+		}
+		fmt.Println("done")
+		return
+	}
+}
+
+//create filename from key (not ideal but really don't care)
+func a2s(b []byte) string {
+	var s = ""
+	for _, e := range b {
+		s += strconv.Itoa(int(e)) + "_"
+	}
+	return s[:len(s)-1]
 }
 
 func doJob(j [2]int, k []byte) {
@@ -174,7 +206,7 @@ func parseKey(s string) []byte {
 	for i := 0; i < len(sret); i++ {
 		y, err := strconv.ParseUint(sret[i], 10, 8)
 		if err != nil {
-			fmt.Println("error parsing supplied baseKey")
+			fmt.Println("error parsing supplied key")
 			os.Exit(1)
 		}
 		ret[i] = byte(y)
@@ -184,20 +216,20 @@ func parseKey(s string) []byte {
 
 //gross task splitter
 func jobSplit(t, n int) [][2]int {
-	var res = make([][2]int, n)
+	var res2 = make([][2]int, n)
 	var r = t % n
 	var c = 0
-	//too tired dont care
-	for i := 0; i < len(res); i++ {
-		res[i][0] = c
-		res[i][1] = c + (t / n) - 1
+	//too tired don't care
+	for i := 0; i < len(res2); i++ {
+		res2[i][0] = c
+		res2[i][1] = c + (t / n) - 1
 		if r > 0 {
-			res[i][1]++
+			res2[i][1]++
 			r--
 		}
-		c = res[i][1] + 1
+		c = res2[i][1] + 1
 	}
-	return res
+	return res2
 }
 
 //add 1 to array
