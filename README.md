@@ -8,7 +8,7 @@ can try to find a string in a file thats obfuscated with xor
   -D string
     	folder to dump ALL xored variants
   -K string
-    	keyword as a string
+    	key as a string
   -c uint
     	number of threads to use (default 1)
   -i string
