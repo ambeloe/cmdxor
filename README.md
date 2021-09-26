@@ -4,24 +4,25 @@ xorsearch type program
 can try to find a string in a file thats obfuscated with xor
 
 <pre>Usage of cmdxor:
-  -C	use as many threads as possible
   -D string
-    	folder to dump ALL xored variants
+        folder to dump ALL xored variants
   -K string
-    	key as a string
+        key as a string
+  -X    xor input file with key and write to output
   -c uint
-    	number of threads to use (default 1)
+        number of threads to use, 0 (default) uses as many as possible
   -i string
-    	input file
+        input file
   -k string
-    	key as a series of csv base 10 bytes
+        key as a series of csv base 10 bytes
   -m uint
-    	max length of key in bytes to try (default 1)
+        max length of key in bytes to try (default 1)
   -n uint
-    	minimum number of matches that need to be found
+        minimum number of matches that need to be found
   -o string
-    	output file
+        output file
   -s string
-    	search for string in input
-  -x	xor input file with key and write to output
+        search for string in input
+  -x    print positions as hex offsets instead of decimal
+
 </pre>
