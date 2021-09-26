@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -35,17 +36,17 @@ func main() {
 	var outFile = flag.String("o", "", "output file")
 
 	//operation flags
-	var dxor = flag.Bool("x", false, "xor input file with key and write to output")
+	var dxor = flag.Bool("X", false, "xor input file with key and write to output")
 	var search = flag.String("s", "", "search for string in input")
 	var ddxor = flag.String("D", "", "folder to dump ALL xored variants")
 
 	//additional flags for operations
 	var keyB = flag.String("k", "", "key as a series of csv base 10 bytes")
 	var keyS = flag.String("K", "", "key as a string")
-	var nCpu = flag.Uint("c", 1, "number of threads to use")
-	var maxCpu = flag.Bool("C", false, "use as many threads as possible")
+	var nCpu = flag.Uint("c", 0, "number of threads to use, 0 (default) uses as many as possible")
 	var minMatch = flag.Uint("n", 0, "minimum number of matches that need to be found")
 	var maxLen = flag.Uint("m", 1, "max length of key in bytes to try")
+	var hexMode = flag.Bool("x", false, "print positions as hex offsets instead of decimal")
 
 	flag.Parse()
 
@@ -60,6 +61,10 @@ func main() {
 			fmt.Println("error reading input file:", err)
 			os.Exit(1)
 		}
+	}
+
+	if *nCpu == 0 {
+		*nCpu = uint(runtime.NumCPU())
 	}
 
 	//xor input file with key
@@ -84,12 +89,10 @@ func main() {
 	}
 	//search for xor'ed string in file
 	if *search != "" {
-		if *maxCpu {
-			*nCpu = uint(runtime.NumCPU())
-		}
 		fmt.Println("searching for string:", *search)
 		fmt.Println("using", *nCpu, "threads")
 		fmt.Println("minimum number of matches:", *minMatch)
+		fmt.Println("hex output:", *hexMode)
 
 		var IKey = []byte(*search)
 
@@ -111,7 +114,7 @@ func main() {
 			if len(res.ms) > 0 {
 				for _, r := range res.ms {
 					if len(r.pos) >= int(*minMatch) {
-						fmt.Println("found keyword at", r.pos, "with key", r.key)
+						fmt.Println("found keyword at", formatArr(r.pos, *hexMode), "with key", r.key)
 					}
 				}
 				res.ms = make([]match, 0)
@@ -263,4 +266,21 @@ func findBytes(s []byte, pattern []byte) []int {
 	fug:
 	}
 	return r
+}
+
+func formatArr(b []int, t bool) string {
+	var s = strings.Builder{}
+
+	var bas = 10
+	if t {
+		bas = 16
+	}
+
+	s.WriteRune('[')
+	for _, i := range b {
+		s.WriteString(strconv.FormatInt(int64(i), bas))
+		s.WriteRune(' ')
+	}
+	s.WriteRune(']')
+	return s.String()
 }
