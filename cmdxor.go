@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -38,6 +39,7 @@ func main() {
 	//operation flags
 	var dxor = flag.Bool("X", false, "xor input file with key and write to output")
 	var search = flag.String("s", "", "search for string in input")
+	var bSearch = flag.String("S", "", "search for hex bytes in input (length must be even)")
 	var ddxor = flag.String("D", "", "folder to dump ALL xored variants")
 
 	//additional flags for operations
@@ -87,14 +89,22 @@ func main() {
 		}
 		return
 	}
-	//search for xor'ed string in file
+	//search for xor'ed string or bytes in file
+	var IKey []byte
 	if *search != "" {
+		IKey = []byte(*search)
+	} else if *bSearch != "" {
+		IKey, err = hex.DecodeString(*bSearch)
+		if err != nil {
+			fmt.Println("byte search string must be even and only contain 0-9a-fA-F")
+			os.Exit(1)
+		}
+	}
+	if IKey != nil {
 		fmt.Println("searching for string:", *search)
 		fmt.Println("using", *nCpu, "threads")
 		fmt.Println("minimum number of matches:", *minMatch)
 		fmt.Println("hex output:", *hexMode)
-
-		var IKey = []byte(*search)
 
 		//create ranges for each thread
 		var split = jobSplit(256, int(*nCpu))
