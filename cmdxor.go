@@ -40,9 +40,12 @@ func main() {
 	var dxor = flag.Bool("X", false, "xor input file with key and write to output")
 	var search = flag.String("s", "", "search for string in input")
 	var bSearch = flag.String("S", "", "search for hex bytes in input (length must be even)")
-	var ddxor = flag.String("D", "", "folder to dump ALL xored variants")
+	var ddxor = flag.String("D", "", "folder to output xored variants")
 
 	//additional flags for operations
+	var autoExtract = flag.Bool("a", false, "automatically output xored file when match is found\n"+
+		"|_ can be combined with -n\n"+
+		"|_ currently significantly slower than with autoextract disabled")
 	var keyB = flag.String("k", "", "key as a series of csv base 10 bytes")
 	var keyS = flag.String("K", "", "key as a string")
 	var nCpu = flag.Uint("c", 0, "number of threads to use, 0 (default) uses as many as possible")
@@ -125,6 +128,25 @@ func main() {
 				for _, r := range res.ms {
 					if len(r.pos) >= int(*minMatch) {
 						fmt.Println("found keyword at", formatArr(r.pos, *hexMode), "with key", r.key)
+						//todo: optimize; files that match get xored twice and lazy folder logic
+						if *autoExtract {
+							var fn string
+							if *ddxor != "" {
+								err = os.MkdirAll(*ddxor, 0755)
+								if err != nil {
+									fmt.Println("error creating directory/ies:", err)
+									os.Exit(1)
+								}
+								fn = *ddxor + string(os.PathSeparator) + a2s(r.key)
+							} else {
+								fn = a2s(r.key)
+							}
+							err = ioutil.WriteFile(fn, xor(iF, r.key), 0644)
+							if err != nil {
+								fmt.Println("error writing file:", err)
+								os.Exit(1)
+							}
+						}
 					}
 				}
 				res.ms = make([]match, 0)
