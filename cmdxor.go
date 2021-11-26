@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"golang.org/x/text/encoding/unicode"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -52,6 +53,8 @@ func main() {
 	var minMatch = flag.Uint("n", 0, "minimum number of matches that need to be found")
 	var maxLen = flag.Uint("m", 1, "max length of key in bytes to try")
 	var hexMode = flag.Bool("x", false, "print positions as hex offsets instead of decimal")
+	var utf16 = flag.Bool("u", false, "convert search string into utf16 (default little endian)")
+	var be = flag.Bool("be", true, "use big endian encoding for utf16")
 
 	flag.Parse()
 
@@ -95,7 +98,16 @@ func main() {
 	//search for xor'ed string or bytes in file
 	var IKey []byte
 	if *search != "" {
-		IKey = []byte(*search)
+		if *utf16 {
+			usearch, err := unicode.UTF16(unicode.Endianness(*be), unicode.UseBOM).NewEncoder().String(*search)
+			if err != nil {
+				fmt.Println("error converting search string to utf16")
+				os.Exit(1)
+			}
+			IKey = []byte(usearch)
+		} else {
+			IKey = []byte(*search)
+		}
 	} else if *bSearch != "" {
 		IKey, err = hex.DecodeString(*bSearch)
 		if err != nil {
