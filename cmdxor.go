@@ -99,7 +99,7 @@ func main() {
 	var IKey []byte
 	if *search != "" {
 		if *utf16 {
-			usearch, err := unicode.UTF16(unicode.Endianness(*be), unicode.UseBOM).NewEncoder().String(*search)
+			usearch, err := unicode.UTF16(unicode.Endianness(*be), unicode.IgnoreBOM).NewEncoder().String(*search)
 			if err != nil {
 				fmt.Println("error converting search string to utf16")
 				os.Exit(1)
